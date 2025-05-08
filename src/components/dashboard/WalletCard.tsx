@@ -3,8 +3,15 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const WalletCard = () => {
+  const navigate = useNavigate();
+  
+  const handleRechargeClick = () => {
+    navigate('/wallet');
+  };
+  
   return (
     <Card className="card-neumorph hover-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -12,12 +19,16 @@ const WalletCard = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="text-3xl font-bold">$2,458.50</div>
+          <div className="text-3xl font-bold">₹2,458.50</div>
           <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">
               Available for orders & subscriptions
             </div>
-            <Button size="sm" className="bg-gold hover:bg-gold-600 text-navy">
+            <Button 
+              size="sm" 
+              className="bg-gold hover:bg-gold-600 text-navy"
+              onClick={handleRechargeClick}
+            >
               <ArrowUp className="mr-1 h-3 w-3" /> Recharge
             </Button>
           </div>
