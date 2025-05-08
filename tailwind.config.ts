@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,12 +65,43 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				navy: {
+					DEFAULT: '#0A174E',
+					50: '#E6EAEF',
+					100: '#CCD5E0',
+					200: '#99ABC1',
+					300: '#6682A2',
+					400: '#335883',
+					500: '#0A174E',
+					600: '#09133E',
+					700: '#070E2F',
+					800: '#05091F',
+					900: '#020510',
+				},
+				gold: {
+					DEFAULT: '#FFD700',
+					50: '#FFFAE6',
+					100: '#FFF5CC',
+					200: '#FFEB99',
+					300: '#FFE166',
+					400: '#FFD733',
+					500: '#FFD700',
+					600: '#CCAC00',
+					700: '#998100',
+					800: '#665600',
+					900: '#332B00',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'2xl': '1rem',
+			},
+			boxShadow: {
+				'neumorph': '5px 5px 10px rgba(0, 0, 0, 0.1), -5px -5px 10px rgba(255, 255, 255, 0.05)',
+				'neumorph-sm': '3px 3px 6px rgba(0, 0, 0, 0.1), -3px -3px 6px rgba(255, 255, 255, 0.05)',
 			},
 			keyframes: {
 				'accordion-down': {
@@ -84,11 +119,44 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'fade-out': {
+					'0%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					},
+					'100%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					}
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'fade-out': 'fade-out 0.3s ease-out',
+				'scale-in': 'scale-in 0.2s ease-out',
 			}
 		}
 	},
