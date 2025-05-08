@@ -61,7 +61,7 @@ const Metric = ({ title, value, target, progress, tooltipText, status }: MetricP
         </div>
         <span className={`text-sm font-medium ${getStatusColor()}`}>{value}</span>
       </div>
-      <Progress value={progress} className="h-1.5" indicatorClassName={getProgressColor()} />
+      <Progress value={progress} className={`h-1.5 ${getProgressColor()}`} />
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>Current</span>
         <span>Target: {target}</span>
