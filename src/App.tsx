@@ -1,8 +1,6 @@
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import AuthLayout from "@/layouts/AuthLayout";
@@ -14,6 +12,7 @@ import MarketplaceAPI from "@/pages/MarketplaceAPI";
 import EWallet from "@/pages/EWallet";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Auth pages
 import SignUp from "@/pages/auth/SignUp";
@@ -23,15 +22,16 @@ import ResetPassword from "@/pages/auth/ResetPassword";
 
 // Onboarding pages
 import Interests from "@/pages/onboarding/Interests";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <Routes>
           {/* Auth routes - full screen layout */}
           <Route path="/auth/signup" element={
@@ -98,8 +98,8 @@ const App = () => (
           {/* 404 route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+      </TooltipProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
