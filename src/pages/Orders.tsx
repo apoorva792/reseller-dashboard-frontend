@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Download, Upload, Calendar, ChevronDown } from 'lucide-react';
+import { Search, Download, Upload, Calendar, ChevronDown, FileInput } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Order status badge variants
 const statusVariants = {
@@ -198,6 +205,8 @@ const Orders = () => {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("all");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Row hover actions
   const OrderActions = ({ orderId }: { orderId: string }) => (
@@ -235,6 +244,20 @@ const Orders = () => {
       </Tooltip>
     </div>
   );
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = () => {
+    // Here you would implement the actual file upload logic
+    console.log("Uploading file:", selectedFile);
+    // After successful upload:
+    setUploadDialogOpen(false);
+    setSelectedFile(null);
+  };
   
   return (
     <div>
@@ -312,13 +335,75 @@ const Orders = () => {
               <Button variant="outline" className="flex-1">
                 <Download className="mr-1 h-4 w-4" /> CSV
               </Button>
-              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button 
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                onClick={() => setUploadDialogOpen(true)}
+              >
                 <Upload className="mr-1 h-4 w-4" /> Upload
               </Button>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* File Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Orders</DialogTitle>
+            <DialogDescription>
+              Upload your orders in CSV or TXT format.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="file-upload" className="text-sm font-medium">
+                Select File
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="grid w-full items-center gap-1.5">
+                  <label
+                    htmlFor="file-upload"
+                    className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-center hover:bg-accent/50"
+                  >
+                    <FileInput className="mb-2 h-10 w-10 text-muted-foreground" />
+                    <div className="text-sm font-medium">
+                      {selectedFile ? selectedFile.name : "Choose a file or drag and drop"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      CSV, TXT (max 5MB)
+                    </div>
+                  </label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+              </div>
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected file: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={handleUpload}
+              disabled={!selectedFile}
+            >
+              Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Tabs */}
       <div className="card-neumorph">
