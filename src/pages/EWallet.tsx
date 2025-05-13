@@ -13,49 +13,74 @@ import { useToast } from '@/hooks/use-toast';
 // Sample transaction history data
 const transactionData = [
   {
-    id: 'TXN-12345',
-    date: '2025-05-07',
-    type: 'Recharge',
-    amount: '+₹1,000.00',
-    balanceAfter: '₹3,458.50',
-    invoice: true,
-    status: 'Completed'
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.1,189.72',
+    balance: 'Rs.742,962.19',
+    details: 'Detail'
   },
   {
-    id: 'TXN-12344',
-    date: '2025-05-05',
-    type: 'Order Payment',
-    amount: '-₹580.25',
-    balanceAfter: '₹2,458.50',
-    invoice: true,
-    status: 'Completed'
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.2,322.49',
+    balance: 'Rs.740,639.70',
+    details: 'Detail'
   },
   {
-    id: 'TXN-12343',
-    date: '2025-05-03',
-    type: 'Order Payment',
-    amount: '-₹320.75',
-    balanceAfter: '₹3,038.75',
-    invoice: true,
-    status: 'Completed'
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.2,974.63',
+    balance: 'Rs.737,665.07',
+    details: 'Detail'
   },
   {
-    id: 'TXN-12342',
-    date: '2025-05-01',
-    type: 'Refund',
-    amount: '+₹159.50',
-    balanceAfter: '₹3,359.50',
-    invoice: true,
-    status: 'Completed'
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.508.28',
+    balance: 'Rs.737,156.79',
+    details: 'Detail'
   },
   {
-    id: 'TXN-12341',
-    date: '2025-04-25',
-    type: 'Recharge',
-    amount: '+₹2,000.00',
-    balanceAfter: '₹3,200.00',
-    invoice: true,
-    status: 'Completed'
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.715.47',
+    balance: 'Rs.736,441.32',
+    details: 'Detail'
+  },
+  {
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.572.03',
+    balance: 'Rs.735,869.29',
+    details: 'Detail'
+  },
+  {
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.575.07',
+    balance: 'Rs.735,294.22',
+    details: 'Detail'
+  },
+  {
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.566.61',
+    balance: 'Rs.734,727.61',
+    details: 'Detail'
+  },
+  {
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.1,364.64',
+    balance: 'Rs.733,362.97',
+    details: 'Detail'
+  },
+  {
+    date: '2025-05-01 22:14:41',
+    type: 'Order',
+    amount: '-Rs.2,808.44',
+    balance: 'Rs.730,554.53',
+    details: 'Detail'
   }
 ];
 
@@ -82,8 +107,8 @@ const EWallet = () => {
     toast({
       title: `Autopay ${checked ? 'enabled' : 'disabled'}`,
       description: checked 
-        ? "Your wallet will be automatically used for future orders" 
-        : "You'll need to manually pay for future orders",
+        ? "Your wallet balance will be used for future orders." 
+        : "You'll need to manually pay for future orders.",
     });
   };
 
@@ -103,7 +128,7 @@ const EWallet = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Available Balance</p>
-              <p className="text-3xl font-bold mt-1">₹2,458.50</p>
+              <p className="text-3xl font-bold mt-1">₹370,001.00</p>
             </div>
             <Button 
               onClick={handleRecharge}
@@ -164,47 +189,29 @@ const EWallet = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Transaction ID</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Balance After</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactionData.map(transaction => (
-                      <TableRow key={transaction.id}>
+                      <TableRow key={transaction.date} className="hover:bg-gray-50">
                         <TableCell>{transaction.date}</TableCell>
-                        <TableCell className="font-medium">{transaction.id}</TableCell>
-                        <TableCell>
-                          <Badge variant={transaction.type === 'Refund' ? 'secondary' : 
-                                        transaction.type === 'Recharge' ? 'default' : 'outline'}>
-                            {transaction.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className={
-                          transaction.amount.startsWith('+') ? 'text-green-600 font-medium' : 
-                          transaction.amount.startsWith('-') ? 'text-red-600 font-medium' : ''
-                        }>
+                        <TableCell>{transaction.type}</TableCell>
+                        <TableCell className="text-red-600 font-medium">
                           {transaction.amount}
                         </TableCell>
-                        <TableCell>{transaction.balanceAfter}</TableCell>
+                        <TableCell>{transaction.balance}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                            {transaction.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {transaction.invoice && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(transaction.id)}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button 
+                            variant="link" 
+                            size="sm"
+                            className="text-blue-600 p-0 h-auto font-medium"
+                          >
+                            {transaction.details}
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -219,43 +226,31 @@ const EWallet = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Transaction ID</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Balance After</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactionData
                       .filter(t => t.type === 'Recharge')
                       .map(transaction => (
-                        <TableRow key={transaction.id}>
+                        <TableRow key={transaction.date} className="hover:bg-gray-50">
                           <TableCell>{transaction.date}</TableCell>
-                          <TableCell className="font-medium">{transaction.id}</TableCell>
-                          <TableCell>
-                            <Badge variant="default">{transaction.type}</Badge>
-                          </TableCell>
+                          <TableCell>{transaction.type}</TableCell>
                           <TableCell className="text-green-600 font-medium">
                             {transaction.amount}
                           </TableCell>
-                          <TableCell>{transaction.balanceAfter}</TableCell>
+                          <TableCell>{transaction.balance}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                              {transaction.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {transaction.invoice && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDownloadInvoice(transaction.id)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="link" 
+                              size="sm"
+                              className="text-blue-600 p-0 h-auto font-medium"
+                            >
+                              {transaction.details}
+                            </Button>
                           </TableCell>
                         </TableRow>
                     ))}
@@ -265,49 +260,36 @@ const EWallet = () => {
             </TabsContent>
             
             <TabsContent value="payments" className="mt-0">
-              {/* Filtered for payments */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Transaction ID</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Balance After</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactionData
-                      .filter(t => t.type === 'Order Payment')
+                      .filter(t => t.type === 'Order')
                       .map(transaction => (
-                        <TableRow key={transaction.id}>
+                        <TableRow key={transaction.date} className="hover:bg-gray-50">
                           <TableCell>{transaction.date}</TableCell>
-                          <TableCell className="font-medium">{transaction.id}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{transaction.type}</Badge>
-                          </TableCell>
+                          <TableCell>{transaction.type}</TableCell>
                           <TableCell className="text-red-600 font-medium">
                             {transaction.amount}
                           </TableCell>
-                          <TableCell>{transaction.balanceAfter}</TableCell>
+                          <TableCell>{transaction.balance}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                              {transaction.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {transaction.invoice && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDownloadInvoice(transaction.id)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="link" 
+                              size="sm"
+                              className="text-blue-600 p-0 h-auto font-medium"
+                            >
+                              {transaction.details}
+                            </Button>
                           </TableCell>
                         </TableRow>
                     ))}
@@ -317,49 +299,36 @@ const EWallet = () => {
             </TabsContent>
             
             <TabsContent value="refunds" className="mt-0">
-              {/* Filtered for refunds */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Transaction ID</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Balance After</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Invoice</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {transactionData
                       .filter(t => t.type === 'Refund')
                       .map(transaction => (
-                        <TableRow key={transaction.id}>
+                        <TableRow key={transaction.date} className="hover:bg-gray-50">
                           <TableCell>{transaction.date}</TableCell>
-                          <TableCell className="font-medium">{transaction.id}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{transaction.type}</Badge>
-                          </TableCell>
+                          <TableCell>{transaction.type}</TableCell>
                           <TableCell className="text-green-600 font-medium">
                             {transaction.amount}
                           </TableCell>
-                          <TableCell>{transaction.balanceAfter}</TableCell>
+                          <TableCell>{transaction.balance}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                              {transaction.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {transaction.invoice && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDownloadInvoice(transaction.id)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button 
+                              variant="link" 
+                              size="sm"
+                              className="text-blue-600 p-0 h-auto font-medium"
+                            >
+                              {transaction.details}
+                            </Button>
                           </TableCell>
                         </TableRow>
                     ))}

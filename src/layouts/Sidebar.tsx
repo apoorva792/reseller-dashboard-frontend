@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   BarChart2, 
@@ -11,7 +10,8 @@ import {
   Settings, 
   ShoppingCart,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Layers
 } from 'lucide-react';
 
 type NavItemProps = {
@@ -20,31 +20,84 @@ type NavItemProps = {
   title: string;
   isCollapsed: boolean;
   isActive: boolean;
+  onClick?: () => void;
 };
 
-const NavItem = ({ to, icon: Icon, title, isCollapsed, isActive }: NavItemProps) => (
-  <Link 
-    to={to} 
-    className={cn(
-      'sidebar-item',
-      isActive && 'active'
-    )}
-  >
-    <Icon size={20} />
-    {!isCollapsed && <span>{title}</span>}
-  </Link>
-);
+const NavItem = ({ to, icon: Icon, title, isCollapsed, isActive, onClick }: NavItemProps) => {
+  if (onClick) {
+    return (
+      <button 
+        onClick={onClick}
+        className={cn(
+          'sidebar-item text-left',
+          isActive && 'active'
+        )}
+      >
+        <Icon size={20} />
+        {!isCollapsed && <span>{title}</span>}
+      </button>
+    );
+  }
+  
+  return (
+    <Link 
+      to={to} 
+      className={cn(
+        'sidebar-item',
+        isActive && 'active'
+      )}
+    >
+      <Icon size={20} />
+      {!isCollapsed && <span>{title}</span>}
+    </Link>
+  );
+};
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
 
+  const isPathActive = (path: string) => {
+    // For regular paths, check exact match
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    
+    // For other paths like onboarding, check if the pathname starts with the path
+    return location.pathname.startsWith(path);
+  };
+  
+  const handleOnboardingClick = () => {
+    // Reset the onboarding state in localStorage to force the onboarding flow
+    const onboardingState = localStorage.getItem('onboarding_state');
+    if (onboardingState) {
+      const state = JSON.parse(onboardingState);
+      state.onboardingCompleted = false;
+      localStorage.setItem('onboarding_state', JSON.stringify(state));
+    } else {
+      // If no onboarding state exists, create a new one
+      const initialState = {
+        selectedCategory: null,
+        selectedPriceRanges: [],
+        selectedProducts: [],
+        onboardingCompleted: false,
+        isNewUser: true,
+      };
+      localStorage.setItem('onboarding_state', JSON.stringify(initialState));
+    }
+    
+    // Navigate to the onboarding interests page
+    navigate('/onboarding/interests');
+  };
+
   const navItems = [
     { to: '/', icon: Home, title: 'Dashboard' },
+    { to: '', icon: Layers, title: 'Subscribe', onClick: handleOnboardingClick },
     { to: '/orders', icon: ShoppingCart, title: 'Orders' },
     { to: '/products', icon: Package, title: 'Products' },
     { to: '/marketplace', icon: Box, title: 'Marketplace' },
@@ -83,7 +136,8 @@ const Sidebar = () => {
             icon={item.icon}
             title={item.title}
             isCollapsed={collapsed}
-            isActive={location.pathname === item.to}
+            isActive={isPathActive(item.to === '' ? '/onboarding' : item.to)}
+            onClick={item.onClick}
           />
         ))}
       </div>

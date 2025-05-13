@@ -1,0 +1,42 @@
+{
+  "Sports": [
+    "Cricket", "Badminton", "Football", "Running", "Fitness", "Yoga", "Gym", "Training", 
+    "Sports Shoes", "Sports Wear", "Equipment", "Accessories", "Nike", "Adidas", "Puma", 
+    "Reebok", "Athletic", "Outdoor Sports", "Team Sports", "Performance"
+  ],
+  "Home Decor": [
+    "Wall Art", "Showpiece", "Figurine", "Statue", "Vase", "Clock", "Cushion Cover", 
+    "Lamp", "LED Lights", "Crystal", "Feng Shui", "Buddha", "Spiritual", "Table Decor", 
+    "Traditional", "Modern", "Minimalist", "Living Room", "Bedroom", "Kitchen"
+  ],
+  "Clothes": [
+    "T-Shirt", "Shirt", "Jeans", "Trousers", "Dress", "Saree", "Kurta", "Ethnic Wear", 
+    "Western Wear", "Formal", "Casual", "Party Wear", "Winter Wear", "Summer Collection", 
+    "Cotton", "Polyester", "Denim", "Linen", "Printed", "Plain"
+  ],
+  "Jewellery": [
+    "Necklace", "Earrings", "Bracelet", "Ring", "Pendant", "Traditional", "Modern", 
+    "Sterling Silver", "Gold Plated", "Diamond", "Crystal", "Pearl", "Gemstone", 
+    "Antique", "Ethnic", "Fashion", "Wedding", "Party Wear", "Daily Wear", "Gift"
+  ],
+  "Outdoor Activities": [
+    "Camping", "Hiking", "Trekking", "Backpack", "Travel", "Adventure", "Fishing", 
+    "Cycling", "Mountain Biking", "Survival Gear", "Tent", "Sleeping Bag", "Compass", 
+    "Water Bottle", "Headlamp", "Outdoor Clothing", "Boots", "Kayaking", "Climbing", "Nature"
+  ],
+  "Toys": [
+    "Educational", "Board Games", "Puzzles", "Action Figures", "Dolls", "Remote Control", 
+    "Building Blocks", "LEGO", "Toy Cars", "Stuffed Animals", "Pretend Play", "Musical Toys", 
+    "Arts & Crafts", "Outdoor Play", "STEM Toys", "Kids", "Toddler", "Baby", "Learning", "Fun"
+  ],
+  "Pet Care": [
+    "Dog", "Cat", "Food", "Treats", "Toys", "Beds", "Collars", "Leashes", "Grooming", 
+    "Health", "Accessories", "Bowls", "Carriers", "Training", "Puppy", "Kitten", "Fish", 
+    "Bird", "Small Animals", "Pet Supplies"
+  ],
+  "Kitchen": [
+    "Cookware", "Appliances", "Utensils", "Storage", "Bakeware", "Mixer", "Blender", 
+    "Toaster", "Kettle", "Coffee Maker", "Pressure Cooker", "Non-Stick", "Stainless Steel", 
+    "Serving", "Dining", "Knives", "Chopping Board", "Containers", "Kitchen Tools", "Gadgets"
+  ]
+} 

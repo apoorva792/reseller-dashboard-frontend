@@ -1,8 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/lib/auth';
 
 const WelcomeBanner = () => {
+  const { user } = useAuth();
+  const firstName = user?.customer_firstname || 'User';
+  
   const currentTime = new Date();
   const hours = currentTime.getHours();
   
@@ -18,7 +21,7 @@ const WelcomeBanner = () => {
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">{greeting}, John!</h1>
+            <h1 className="text-2xl font-semibold">{greeting}, {firstName}!</h1>
             <p className="text-white/80 mt-1">
               Welcome back to your Shopperr reseller dashboard
             </p>

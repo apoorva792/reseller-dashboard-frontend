@@ -1,5 +1,5 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import WelcomeBanner from '@/components/dashboard/WelcomeBanner';
 import MembershipCard from '@/components/dashboard/MembershipCard';
 import WalletCard from '@/components/dashboard/WalletCard';
@@ -7,8 +7,25 @@ import StatusCard from '@/components/dashboard/StatusCard';
 import AmazonMetrics from '@/components/dashboard/AmazonMetrics';
 import BestSellingChart from '@/components/dashboard/BestSellingChart';
 import { ShoppingBag, AlertTriangle, CreditCard, Package, Truck, RotateCcw, XCircle } from 'lucide-react';
+import { useOnboardingCheck } from '@/onboarding-flow/hooks/useOnboardingCheck';
 
 const Dashboard = () => {
+  console.log('Dashboard rendering');
+  
+  let isCheckingOnboarding = false;
+  
+  try {
+    isCheckingOnboarding = useOnboardingCheck();
+    console.log('useOnboardingCheck successful, isChecking:', isCheckingOnboarding);
+  } catch (error) {
+    console.error('Error in Dashboard with useOnboardingCheck:', error);
+  }
+  
+  // If still checking onboarding status, show a loading indicator
+  if (isCheckingOnboarding) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <WelcomeBanner />

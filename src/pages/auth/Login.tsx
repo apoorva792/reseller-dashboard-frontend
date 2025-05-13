@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth';
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -27,7 +27,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
+  
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -37,10 +39,32 @@ const Login = () => {
     },
   });
 
-  function onSubmit(data: LoginFormValues) {
-    console.log("Form submitted:", data);
-    toast.success("Login successful!");
-    navigate("/");
+  async function onSubmit(data: LoginFormValues) {
+    try {
+      await login(data.email, data.password);
+      
+      // After successful login, check if the user has completed onboarding
+      const onboardingState = localStorage.getItem('onboarding_state');
+      
+      if (onboardingState) {
+        const state = JSON.parse(onboardingState);
+        if (!state.onboardingCompleted) {
+          // If onboarding isn't completed, redirect to onboarding flow
+          navigate('/onboarding/interests');
+          return;
+        }
+      } else {
+        // No onboarding state found, user is new
+        navigate('/onboarding/interests');
+        return;
+      }
+      
+      // If onboarding is completed or skipped, toast success and let normal redirect happen
+      toast.success("Login successful!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.response?.data?.detail || "Login failed");
+    }
   }
 
   return (
@@ -65,7 +89,6 @@ const Login = () => {
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="password"
@@ -79,7 +102,6 @@ const Login = () => {
                 </FormItem>
               )}
             />
-            
             <div className="flex items-center justify-between">
               <FormField
                 control={form.control}
@@ -102,7 +124,6 @@ const Login = () => {
                 Forgot password?
               </Link>
             </div>
-            
             <Button type="submit" className="w-full">
               Login
             </Button>

@@ -1,0 +1,28 @@
+{
+  "name": "reseller-onboarding-flow",
+  "version": "1.0.0",
+  "description": "A 3-step onboarding flow for resellers",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.10.0",
+    "framer-motion": "^10.12.0",
+    "lucide-react": "^0.160.0",
+    "sonner": "^0.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "@types/react": "^18.0.35",
+    "@types/react-dom": "^18.0.11"
+  },
+  "peerDependencies": {
+    "tailwindcss": "^3.3.0"
+  },
+  "keywords": [
+    "onboarding",
+    "react",
+    "framer-motion",
+    "tailwindcss",
+    "reseller"
+  ]
+} 

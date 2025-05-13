@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Download, Upload, Calendar, ChevronDown, FileInput } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -38,9 +38,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from 'sonner';
+import { orderApi } from '@/lib/api';
 
 // Order status badge variants
 const statusVariants = {
+  // Base order status
+  OS: { variant: "outline", label: "Processing" },
+  OB: { variant: "secondary", label: "Ordered" },
+  OC: { variant: "destructive", label: "Cancelled" },
+  
+  // Payment status
+  PU: { variant: "outline", label: "Unpaid" },
+  PD: { variant: "secondary", label: "Paid" },
+  
+  // Shipping status
+  SU: { variant: "outline", label: "Unshipped" },
+  SP: { variant: "secondary", label: "Processing" },
+  SS: { variant: "default", label: "Shipped" },
+  
+  // Return status
+  RA: { variant: "outline", label: "Awaiting Return" },
+  RR: { variant: "default", label: "Return Requested" },
+  RC: { variant: "secondary", label: "Return Completed" },
+  RS: { variant: "secondary", label: "Return Shipped" },
+  RD: { variant: "destructive", label: "Return Denied" },
+  
+  // Dispute status
+  DP: { variant: "outline", label: "Dispute Pending" },
+  DD: { variant: "destructive", label: "Dispute Denied" },
+  DN: { variant: "default", label: "No Dispute" },
+  AD: { variant: "secondary", label: "Dispute Accepted" },
+  
+  // Legacy/compatibility status values
   shipped: { variant: "default", label: "Shipped" },
   processing: { variant: "secondary", label: "Processing" },
   delivered: { variant: "default", label: "Delivered" },
@@ -52,682 +82,554 @@ const statusVariants = {
   abnormal: { variant: "destructive", label: "Abnormal" },
 };
 
-// Sample order data for all tabs
-const allOrders = [
-  {
-    shopperrOrderId: "SP-12345", 
-    marketplaceOrderId: "AM-98765",
-    amount: 136.99,
-    marketplace: "Amazon",
-    status: "shipped",
-    orderDate: "Apr 15, 2023",
-    paidDate: "Apr 15, 2023",
-    shippedDate: "Apr 17, 2023",
-    trackingNumber: "1Z999AA10123456784",
-    returnStatus: "None",
-    recipient: "Jane Smith"
-  },
-  {
-    shopperrOrderId: "SP-12346", 
-    marketplaceOrderId: "FL-76543",
-    amount: 89.50,
-    marketplace: "Flipkart",
-    status: "processing",
-    orderDate: "Apr 12, 2023",
-    paidDate: "Apr 12, 2023",
-    shippedDate: "-",
-    trackingNumber: "-",
-    returnStatus: "None",
-    recipient: "John Davis"
-  },
-  {
-    shopperrOrderId: "SP-12347", 
-    marketplaceOrderId: "MS-54321",
-    amount: 212.30,
-    marketplace: "Meesho",
-    status: "delivered",
-    orderDate: "Apr 10, 2023",
-    paidDate: "Apr 10, 2023",
-    shippedDate: "Apr 11, 2023",
-    trackingNumber: "FEDEX4832947329",
-    returnStatus: "None",
-    recipient: "Maria Rodriguez"
-  },
+// Convert source option values to match backend expectations
+const SOURCE_OPTIONS = [
+  { label: "All", value: "ALL" },
+  { label: "Amazon", value: "1" },
+  { label: "Flipkart", value: "2" },
+  { label: "Meesho", value: "3" },
+  { label: "Shopify", value: "4" },
+  { label: "Others", value: "5" }
 ];
 
-const abnormalOrders = [
-  {
-    marketplaceOrderId: "AM-54321",
-    recipient: "Mike Johnson",
-    marketplace: "Amazon",
-    date: "Apr 18, 2023",
-    issueTag: "Missing Address",
-  },
-  {
-    marketplaceOrderId: "FL-12345",
-    recipient: "Sarah Williams",
-    marketplace: "Flipkart",
-    date: "Apr 17, 2023",
-    issueTag: "Invalid Phone",
+// Helper function to extract error message from various error objects
+const getErrorMessage = (error: any): string => {
+  if (!error) return "Unknown error occurred";
+  
+  // If error has a message property, use that
+  if (typeof error.message === 'string') {
+    if (error.message === 'Network Error') {
+      return "Network error: Cannot connect to server. Please check your internet connection.";
+    }
+    return error.message;
   }
-];
-
-const awaitingPaymentOrders = [
-  {
-    marketplaceOrderId: "MS-67890",
-    recipient: "David Brown",
-    marketplace: "Meesho",
-    amount: 145.99,
-    walletStatus: "Insufficient",
-  },
-  {
-    marketplaceOrderId: "AM-45678",
-    recipient: "Lisa Garcia",
-    marketplace: "Amazon",
-    amount: 78.50,
-    walletStatus: "OK",
+  
+  // If error has a response with data and detail
+  if (error.response?.data) {
+    // Handle array of error details
+    if (Array.isArray(error.response.data.detail)) {
+      return error.response.data.detail.map((item: any) => 
+        typeof item === 'string' ? item : JSON.stringify(item)
+      ).join(', ');
+    }
+    
+    // Handle string detail
+    if (typeof error.response.data.detail === 'string') {
+      return error.response.data.detail;
+    }
+    
+    // If detail exists but is an object
+    if (error.response.data.detail) {
+      return "Validation error. Please check your input data.";
+    }
+    
+    // Try to stringify the entire data object
+    try {
+      return JSON.stringify(error.response.data);
+    } catch (e) {
+      return "Server returned an error";
+    }
   }
-];
-
-const processingOrders = [
-  {
-    shopperrOrderId: "SP-23456",
-    quantity: 3,
-    totalPrice: 67.99,
-    recipient: "Robert Wilson",
-    marketplace: "Flipkart",
-    orderDate: "Apr 19, 2023",
-  },
-  {
-    shopperrOrderId: "SP-34567",
-    quantity: 1,
-    totalPrice: 99.99,
-    recipient: "Jennifer Lee",
-    marketplace: "Amazon",
-    orderDate: "Apr 18, 2023",
+  
+  // For HTTP errors without detailed response
+  if (error.response?.status) {
+    switch (error.response.status) {
+      case 400: return "Bad request: The server cannot process the request";
+      case 401: return "Unauthorized: Please log in again";
+      case 403: return "Forbidden: You don't have permission to access this resource";
+      case 404: return "Not found: The requested resource does not exist";
+      case 422: return "Validation error: Please check your input data";
+      case 500: return "Server error: Something went wrong on the server";
+      default: return `Server error (${error.response.status})`;
+    }
   }
-];
+  
+  // Fallback
+  return "An unexpected error occurred";
+};
 
-const shippedOrders = [
-  {
-    orderId: "SP-12345",
-    trackingNumber: "1Z999AA10123456784",
-    carrier: "UPS",
-    shipmentDate: "Apr 17, 2023",
-    deliveryETA: "Apr 21, 2023",
-  },
-  {
-    orderId: "SP-23451",
-    trackingNumber: "FEDEX9876543210",
-    carrier: "FedEx",
-    shipmentDate: "Apr 16, 2023",
-    deliveryETA: "Apr 19, 2023",
+// Calculate total order amount from products
+const calculateOrderAmount = (products: any[]): number => {
+  if (!products || !Array.isArray(products)) return 0;
+  return products.reduce((sum, product) => sum + (parseFloat(product.final_price) * product.quantity), 0);
+};
+
+// Get display status based on backend status codes
+const getDisplayStatus = (order: any): { status: string, variant: string } => {
+  // Order cancelled takes priority
+  if (order.status === 'OC') {
+    return { status: "Cancelled", variant: "destructive" };
   }
-];
-
-const ticketedOrders = [
-  {
-    orderId: "SP-34512",
-    ticketId: "TK-12345",
-    issueSummary: "Wrong item received",
-    lastUpdated: "Apr 18, 2023",
-    status: "open",
-  },
-  {
-    orderId: "SP-45123",
-    ticketId: "TK-23456",
-    issueSummary: "Package damaged",
-    lastUpdated: "Apr 17, 2023",
-    status: "in-progress",
+  
+  // Check payment status
+  if (order.status_payment === 'PU') {
+    return { status: "Awaiting Payment", variant: "outline" };
   }
-];
-
-const cancelledOrders = [
-  {
-    orderId: "SP-51234",
-    cancellationReason: "Out of stock",
-    cancelledBy: "SFC",
-    timestamp: "Apr 16, 2023",
-  },
-  {
-    orderId: "SP-61235",
-    cancellationReason: "Customer request",
-    cancelledBy: "User",
-    timestamp: "Apr 15, 2023",
+  
+  // Return/dispute status
+  if (order.status_return && order.status_return !== 'RN') {
+    const returnStatus = statusVariants[order.status_return];
+    if (returnStatus) {
+      return { status: returnStatus.label, variant: returnStatus.variant as string };
+    }
   }
-];
-
-const marketplaces = ["All", "Amazon", "Flipkart", "Meesho", "Shopify", "Others"];
+  
+  if (order.status_dispute && order.status_dispute !== 'DN') {
+    const disputeStatus = statusVariants[order.status_dispute];
+    if (disputeStatus) {
+      return { status: disputeStatus.label, variant: disputeStatus.variant as string };
+    }
+  }
+  
+  // Shipping status
+  if (order.status_shipping) {
+    const shippingStatus = statusVariants[order.status_shipping];
+    if (shippingStatus) {
+      return { status: shippingStatus.label, variant: shippingStatus.variant as string };
+    }
+  }
+  
+  // Fall back to main status
+  const mainStatus = statusVariants[order.status];
+  if (mainStatus) {
+    return { status: mainStatus.label, variant: mainStatus.variant as string };
+  }
+  
+  // Default
+  return { status: "Processing", variant: "secondary" };
+};
 
 const Orders = () => {
+  const [selectedTab, setSelectedTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [marketplace, setMarketplace] = useState("All");
+  const [selectedMarketplace, setSelectedMarketplace] = useState("ALL");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("all");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showRecentOnly, setShowRecentOnly] = useState(false);
   
-  // Row hover actions
-  const OrderActions = ({ orderId }: { orderId: string }) => (
-    <div className="flex items-center space-x-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link to={`/orders/${orderId}`}>
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-              <span className="sr-only">View Details</span>
-              <Search className="h-4 w-4" />
-            </Button>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent>View Details</TooltipContent>
-      </Tooltip>
-      
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-            <span className="sr-only">Download Invoice</span>
-            <Download className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Download Invoice</TooltipContent>
-      </Tooltip>
-      
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-            <span className="sr-only">Raise Ticket</span>
-            <Calendar className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Raise Ticket</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-  
+  // Orders state
+  const [orders, setOrders] = useState<any[]>([]);
+  const [confirmedOrders, setConfirmedOrders] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch orders based on selected tab
+  const fetchTabOrders = async (tab: string) => {
+    setIsLoading(true);
+    try {
+      const filters = {
+        from_date: dateRange.from,
+        to_date: dateRange.to,
+        order_search_item: searchTerm,
+        source_option: selectedMarketplace,
+        page,
+        page_size: pageSize,
+        store_by: "last_modified" // Default sort option
+      };
+
+      let response;
+      switch(tab) {
+        case 'awaiting-payment':
+          response = await orderApi.getUnpaidOrders(filters);
+          break;
+        case 'processing':
+          response = await orderApi.getWaitForShippingOrders(filters);
+          break;
+        case 'shipped':
+          response = await orderApi.getShippedOrders(filters);
+          break;
+        case 'ticketed':
+          response = await orderApi.getTicketedOrders(filters);
+          break;
+        case 'cancelled':
+          response = await orderApi.getCancelledOrders(filters);
+          break;
+        case 'abnormal':
+          response = await orderApi.getAbnormalOrders(filters);
+          break;
+        case 'confirmed':
+          response = await orderApi.getConfirmedOrders(filters);
+          break;
+        case 'all':
+        default:
+          response = await orderApi.getAllOrders(filters);
+          break;
+      }
+
+      setOrders(response.orders || []);
+      setTotalCount(response.total_count || 0);
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to fetch orders: ${errorMessage}`);
+      console.error("Error fetching orders:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update useEffect to use the new fetchTabOrders function
+  useEffect(() => {
+    fetchTabOrders(selectedTab);
+  }, [selectedTab, searchTerm, selectedMarketplace, dateRange, page]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
     }
   };
 
-  const handleUpload = () => {
-    // Here you would implement the actual file upload logic
-    console.log("Uploading file:", selectedFile);
-    // After successful upload:
-    setUploadDialogOpen(false);
-    setSelectedFile(null);
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file to upload");
+      return;
+    }
+
+    // Check if file is CSV
+    if (!selectedFile.name.endsWith('.csv')) {
+      toast.error("Only CSV files are allowed");
+      return;
+    }
+
+    // Check file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      toast.error(`File too large. Maximum size is 10MB`);
+      return;
+    }
+
+    // Validate CSV content by reading first few lines
+    try {
+      const fileReader = new FileReader();
+      fileReader.onload = async (e) => {
+        const content = e.target?.result as string;
+        const lines = content.split('\n');
+        
+        if (lines.length < 2) {
+          toast.error("CSV file must contain header row and at least one data row");
+          return;
+        }
+        
+        const header = lines[0].trim();
+        console.log("CSV Header:", header);
+        
+        // Ensure required fields are present for the order creation service
+        const requiredFields = [
+          'order-id', 'order-item-id', 'sku', 'quantity-purchased', 
+          'recipient-name', 'ship-address-1', 'ship-city', 
+          'ship-state', 'ship-postal-code'
+        ];
+        
+        const headerFields = header.split(',').map(field => field.trim().toLowerCase());
+        
+        const missingFields = requiredFields.filter(field => 
+          !headerFields.includes(field.toLowerCase())
+        );
+        
+        if (missingFields.length > 0) {
+          toast.error(`CSV missing required fields: ${missingFields.join(', ')}`);
+          return;
+        }
+        
+        // Check the first data row to ensure it has the right format
+        if (lines.length >= 2) {
+          const firstDataRow = lines[1].trim();
+          const values = firstDataRow.split(',');
+          
+          // Basic validation: ensure row has same number of columns as header
+          if (values.length !== headerFields.length) {
+            toast.error(`Data row has ${values.length} columns but header has ${headerFields.length} columns`);
+            return;
+          }
+          
+          // Check order-id format (should look like Amazon order IDs)
+          const orderIdIndex = headerFields.indexOf('order-id');
+          if (orderIdIndex >= 0) {
+            const orderId = values[orderIdIndex];
+            if (!orderId.match(/\d+-\d+-\d+/) && !orderId.match(/\w+-\d+/)) {
+              toast.warning("Order ID format may not be recognized. Expected format: XXX-XXXXXXX-XXXXXXX");
+            }
+          }
+          
+          // Validate SKU is a number
+          const skuIndex = headerFields.indexOf('sku');
+          if (skuIndex >= 0) {
+            const sku = values[skuIndex];
+            if (!sku.match(/^\d+$/)) {
+              toast.warning("SKU should be a numeric value");
+            }
+          }
+        }
+        
+        console.log('CSV validation passed, proceeding with upload');
+        await uploadFile();
+      };
+      
+      fileReader.readAsText(selectedFile);
+    } catch (error) {
+      console.error("CSV validation error:", error);
+      toast.error("Failed to validate CSV file");
+    }
   };
   
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Orders</h1>
+  const uploadFile = async () => {
+    setIsUploading(true);
+    try {
+      toast.info("Uploading file...");
+      console.log('Starting upload of file:', selectedFile.name);
       
-      {/* Search & Filters Panel */}
-      <div className="card-neumorph-sm sticky top-4 z-10 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-5">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search by order ID or recipient..." 
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="md:col-span-3">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <span>Date Range</span>
-                  <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-4" align="start">
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium" htmlFor="from">From</label>
-                        <Input 
-                          id="from"
-                          type="date"
-                          value={dateRange.from}
-                          onChange={(e) => setDateRange({...dateRange, from: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium" htmlFor="to">To</label>
-                        <Input 
-                          id="to"
-                          type="date"
-                          value={dateRange.to}
-                          onChange={(e) => setDateRange({...dateRange, to: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <Button size="sm" className="w-full">Apply Range</Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="md:col-span-2">
-            <Select value={marketplace} onValueChange={setMarketplace}>
-              <SelectTrigger>
-                <SelectValue placeholder="Marketplace" />
-              </SelectTrigger>
-              <SelectContent>
-                {marketplaces.map(market => (
-                  <SelectItem key={market} value={market}>{market}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="md:col-span-2">
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1">
-                <Download className="mr-1 h-4 w-4" /> CSV
-              </Button>
-              <Button 
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                onClick={() => setUploadDialogOpen(true)}
-              >
-                <Upload className="mr-1 h-4 w-4" /> Upload
-              </Button>
-            </div>
-          </div>
+      const response = await orderApi.uploadOrders(selectedFile);
+      
+      console.log('Upload successful:', response);
+      toast.success(`Successfully processed orders from ${selectedFile.name}`);
+      setUploadDialogOpen(false);
+      fetchTabOrders(selectedTab); // Refresh orders list
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      
+      // Enhanced error handling with more details
+      let errorMessage = "Failed to upload orders";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
+        console.error('Server response:', error.response);
+        
+        // Handle various status codes
+        if (error.response.status === 500) {
+          errorMessage = "Server error processing your file. Please check the server logs.";
+        } else if (error.response.status === 422) {
+          if (error.response.data?.detail) {
+            errorMessage = typeof error.response.data.detail === 'string' 
+              ? error.response.data.detail 
+              : Array.isArray(error.response.data.detail)
+                ? error.response.data.detail[0]
+                : "Invalid data in CSV file";
+          } else {
+            errorMessage = "File validation failed. Please check the format.";
+          }
+        } else if (error.response.status === 401) {
+          errorMessage = "Authentication failed. Please log in again.";
+        }
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+    }
+  };
+
+  const OrderActions = ({ orderId }: { orderId: string | number }) => (
+    <div className="flex items-center gap-2">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Download className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Download Invoice</TooltipContent>
+      </Tooltip>
+      <Link to={`/orders/${orderId}`}>
+        <Button variant="ghost" size="sm">View Details</Button>
+      </Link>
+    </div>
+  );
+
+  // Render a table row for an order
+  const renderOrderRow = (order: any) => {
+    const amount = calculateOrderAmount(order.products);
+    const { status, variant } = getDisplayStatus(order);
+    
+    return (
+      <TableRow key={order.order_id}>
+        <TableCell>{order.order_serial || order.order_id}</TableCell>
+        <TableCell>
+          {/* Always display Amazon regardless of the source value */}
+          Amazon
+        </TableCell>
+        <TableCell>
+          <Badge variant={variant as any}>
+            {status}
+          </Badge>
+        </TableCell>
+        <TableCell>₹{amount.toFixed(2)}</TableCell>
+        <TableCell>{new Date(order.date_purchased).toLocaleDateString()}</TableCell>
+        <TableCell>{order.delivery_name}</TableCell>
+        <TableCell>
+          <OrderActions orderId={order.order_id} />
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  // Filter orders to show only recent uploads if the filter is active
+  const filteredOrders = showRecentOnly 
+    ? orders.filter(order => {
+        // Check if the order was created within the last 24 hours
+        const orderDate = new Date(order.date_purchased);
+        const twentyFourHoursAgo = new Date();
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+        return orderDate >= twentyFourHoursAgo;
+      })
+    : orders;
+
+  return (
+    <div className="container mx-auto py-6 space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Orders</h1>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Orders
+          </Button>
         </div>
       </div>
-      
-      {/* File Upload Dialog */}
+
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search orders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9"
+            />
+          </div>
+        </div>
+        <Select value={selectedMarketplace} onValueChange={setSelectedMarketplace}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Marketplace" />
+          </SelectTrigger>
+          <SelectContent>
+            {SOURCE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[180px]">
+              <Calendar className="h-4 w-4 mr-2" />
+              Date Range
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="p-4 space-y-2">
+            <div className="space-y-1">
+              <label className="text-sm">From</label>
+              <Input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm">To</label>
+              <Input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Button 
+          variant={showRecentOnly ? "default" : "outline"} 
+          onClick={() => setShowRecentOnly(!showRecentOnly)}
+          className="whitespace-nowrap"
+        >
+          {showRecentOnly ? "Showing Recent" : "Show Recent Only"}
+        </Button>
+      </div>
+
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="all">All Orders</TabsTrigger>
+          <TabsTrigger value="abnormal">Abnormal</TabsTrigger>
+          <TabsTrigger value="awaiting-payment">Awaiting Payment</TabsTrigger>
+          <TabsTrigger value="processing">Processing</TabsTrigger>
+          <TabsTrigger value="shipped">Shipped</TabsTrigger>
+          <TabsTrigger value="ticketed">Ticketed orders</TabsTrigger>
+          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+        </TabsList>
+        
+        {/* Create a common tab content structure that will be used for all tabs */}
+        {['all', 'abnormal', 'awaiting-payment', 'processing', 'shipped', 'ticketed', 'cancelled'].map(tab => (
+          <TabsContent key={tab} value={tab} className="mt-4">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Marketplace</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Order Date</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        Loading orders...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        {showRecentOnly ? "No recent orders found" : "No orders found"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredOrders.map(renderOrderRow)
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Orders</DialogTitle>
             <DialogDescription>
-              Upload your orders in CSV or TXT format.
+              Upload a CSV file containing order data
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="file-upload" className="text-sm font-medium">
-                Select File
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="grid w-full items-center gap-1.5">
-                  <label
-                    htmlFor="file-upload"
-                    className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-input bg-background px-3 py-2 text-center hover:bg-accent/50"
-                  >
-                    <FileInput className="mb-2 h-10 w-10 text-muted-foreground" />
-                    <div className="text-sm font-medium">
-                      {selectedFile ? selectedFile.name : "Choose a file or drag and drop"}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      CSV, TXT (max 5MB)
-                    </div>
-                  </label>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    accept=".csv,.txt"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </div>
-              </div>
-              {selectedFile && (
-                <p className="text-sm text-muted-foreground">
-                  Selected file: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
-                </p>
-              )}
-            </div>
+          <div className="space-y-4">
+            <Input
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              disabled={isUploading}
+            />
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground">
+                Selected file: {selectedFile.name}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              onClick={handleUpload}
-              disabled={!selectedFile}
-            >
-              Upload
+            <Button onClick={handleUpload} disabled={!selectedFile || isUploading}>
+              {isUploading ? "Uploading..." : "Upload"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Tabs */}
-      <div className="card-neumorph">
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-7 mb-4">
-            <TabsTrigger value="all">All Orders</TabsTrigger>
-            <TabsTrigger value="abnormal">Abnormal</TabsTrigger>
-            <TabsTrigger value="awaiting">Awaiting Payment</TabsTrigger>
-            <TabsTrigger value="processing">Processing</TabsTrigger>
-            <TabsTrigger value="shipped">Shipped</TabsTrigger>
-            <TabsTrigger value="ticketed">Ticketed</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-          </TabsList>
-          
-          {/* All Orders Tab */}
-          <TabsContent value="all" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Shopperr Order ID</TableHead>
-                    <TableHead>Marketplace Order ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Marketplace</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Order Date</TableHead>
-                    <TableHead>Paid Date</TableHead>
-                    <TableHead>Shipped Date</TableHead>
-                    <TableHead>Tracking Number</TableHead>
-                    <TableHead>Return Status</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allOrders.map((order) => (
-                    <TableRow key={order.shopperrOrderId} className="group/row">
-                      <TableCell>
-                        <Link to={`/orders/${order.shopperrOrderId}`} className="text-primary hover:underline">
-                          {order.shopperrOrderId}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.marketplaceOrderId}</TableCell>
-                      <TableCell>${order.amount.toFixed(2)}</TableCell>
-                      <TableCell>{order.marketplace}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariants[order.status as keyof typeof statusVariants].variant as any}>
-                          {statusVariants[order.status as keyof typeof statusVariants].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{order.orderDate}</TableCell>
-                      <TableCell>{order.paidDate}</TableCell>
-                      <TableCell>{order.shippedDate}</TableCell>
-                      <TableCell>{order.trackingNumber}</TableCell>
-                      <TableCell>{order.returnStatus}</TableCell>
-                      <TableCell>
-                        <OrderActions orderId={order.shopperrOrderId} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Abnormal Orders Tab */}
-          <TabsContent value="abnormal" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Marketplace Order ID</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Marketplace</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Issue Tag</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {abnormalOrders.map((order) => (
-                    <TableRow key={order.marketplaceOrderId} className="group/row">
-                      <TableCell>{order.marketplaceOrderId}</TableCell>
-                      <TableCell>{order.recipient}</TableCell>
-                      <TableCell>{order.marketplace}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">
-                          {order.issueTag}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm">Fix</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Awaiting Payment Tab */}
-          <TabsContent value="awaiting" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Marketplace Order ID</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Marketplace</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Wallet Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {awaitingPaymentOrders.map((order) => (
-                    <TableRow key={order.marketplaceOrderId} className="group/row">
-                      <TableCell>{order.marketplaceOrderId}</TableCell>
-                      <TableCell>{order.recipient}</TableCell>
-                      <TableCell>{order.marketplace}</TableCell>
-                      <TableCell>${order.amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant={order.walletStatus === "OK" ? "secondary" : "destructive"}>
-                          {order.walletStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                          Pay Now
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Processing Tab */}
-          <TabsContent value="processing" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Shopperr Order ID</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Total Price</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Marketplace</TableHead>
-                    <TableHead>Order Date</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processingOrders.map((order) => (
-                    <TableRow key={order.shopperrOrderId} className="group/row">
-                      <TableCell>
-                        <Link to={`/orders/${order.shopperrOrderId}`} className="text-primary hover:underline">
-                          {order.shopperrOrderId}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
-                      <TableCell>{order.recipient}</TableCell>
-                      <TableCell>{order.marketplace}</TableCell>
-                      <TableCell>{order.orderDate}</TableCell>
-                      <TableCell>
-                        <OrderActions orderId={order.shopperrOrderId} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Shipped Tab */}
-          <TabsContent value="shipped" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Tracking Number</TableHead>
-                    <TableHead>Carrier</TableHead>
-                    <TableHead>Shipment Date</TableHead>
-                    <TableHead>Delivery ETA</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shippedOrders.map((order) => (
-                    <TableRow key={order.orderId} className="group/row">
-                      <TableCell>
-                        <Link to={`/orders/${order.orderId}`} className="text-primary hover:underline">
-                          {order.orderId}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.trackingNumber}</TableCell>
-                      <TableCell>{order.carrier}</TableCell>
-                      <TableCell>{order.shipmentDate}</TableCell>
-                      <TableCell>{order.deliveryETA}</TableCell>
-                      <TableCell>
-                        <OrderActions orderId={order.orderId} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Ticketed Tab */}
-          <TabsContent value="ticketed" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Ticket ID</TableHead>
-                    <TableHead>Issue Summary</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ticketedOrders.map((order) => (
-                    <TableRow key={order.orderId} className="group/row">
-                      <TableCell>
-                        <Link to={`/orders/${order.orderId}`} className="text-primary hover:underline">
-                          {order.orderId}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.ticketId}</TableCell>
-                      <TableCell>{order.issueSummary}</TableCell>
-                      <TableCell>{order.lastUpdated}</TableCell>
-                      <TableCell>
-                        <Badge variant={order.status === "open" ? "outline" : "secondary"}>
-                          {order.status === "open" ? "Open" : "In Progress"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <OrderActions orderId={order.orderId} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-          
-          {/* Cancelled Tab */}
-          <TabsContent value="cancelled" className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Cancellation Reason</TableHead>
-                    <TableHead>Cancelled By</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cancelledOrders.map((order) => (
-                    <TableRow key={order.orderId} className="group/row">
-                      <TableCell>
-                        <Link to={`/orders/${order.orderId}`} className="text-primary hover:underline">
-                          {order.orderId}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.cancellationReason}</TableCell>
-                      <TableCell>{order.cancelledBy}</TableCell>
-                      <TableCell>{order.timestamp}</TableCell>
-                      <TableCell>
-                        <OrderActions orderId={order.orderId} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Pagination */}
-        <div className="flex items-center justify-between p-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            Showing 1-{activeTab === "all" ? allOrders.length : 
-                       activeTab === "abnormal" ? abnormalOrders.length : 
-                       activeTab === "awaiting" ? awaitingPaymentOrders.length :
-                       activeTab === "processing" ? processingOrders.length :
-                       activeTab === "shipped" ? shippedOrders.length :
-                       activeTab === "ticketed" ? ticketedOrders.length :
-                       cancelledOrders.length} of {activeTab === "all" ? allOrders.length : 
-                       activeTab === "abnormal" ? abnormalOrders.length : 
-                       activeTab === "awaiting" ? awaitingPaymentOrders.length :
-                       activeTab === "processing" ? processingOrders.length :
-                       activeTab === "shipped" ? shippedOrders.length :
-                       activeTab === "ticketed" ? ticketedOrders.length :
-                       cancelledOrders.length} entries
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            >
-              Previous
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={true} // Would be conditionally disabled based on total pages
-              onClick={() => setCurrentPage(prev => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

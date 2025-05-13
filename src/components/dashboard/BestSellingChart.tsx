@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -90,7 +89,7 @@ const BestSellingChart = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`$${value}`, 'Earnings']} />
+                  <Tooltip formatter={(value) => [`₹${value}`, 'Earnings']} />
                   <Legend />
                   <Line type="monotone" dataKey="Earnings" stroke="#0A174E" activeDot={{ r: 8 }} />
                 </RechartsLineChart>

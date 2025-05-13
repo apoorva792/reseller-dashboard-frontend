@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,19 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
 
 const signUpSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   companyName: z.string().min(1, "Company name is required"),
   gstinCode: z.string().optional(),
-  referBy: z.string().optional(),
   termsAccepted: z.boolean().refine(val => val === true, {
     message: "You must accept the terms and conditions"
   })
@@ -41,33 +37,94 @@ const signUpSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-const SignUp = () => {
-  const navigate = useNavigate();
+function SignUp() {
+  const { register } = useAuth();
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      username: "",
-      firstName: "",
-      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
+      firstName: "",
+      lastName: "",
       phone: "",
       companyName: "",
       gstinCode: "",
-      referBy: "",
       termsAccepted: false,
     },
   });
 
-  function onSubmit(data: SignUpFormValues) {
-    console.log("Form submitted:", data);
-    toast.success("Account created successfully!");
-    navigate("/auth/verify", { state: { email: data.email } });
+  async function onSubmit(data: SignUpFormValues) {
+    try {
+      const payload = {
+        customer_email_address: data.email,
+        password: data.password,
+        customer_firstname: data.firstName,
+        customer_lastname: data.lastName,
+        customer_telephone: data.phone,
+        customer_company_name: data.companyName,
+        customer_logid: data.email,
+        gstin_code: data.gstinCode || "",
+        customer_gender: "M",
+        customer_secret_qu: "What is your favorite color?",
+        customer_secret_answer: "Blue",
+        customer_status: 1,
+        customer_type: 1,
+        customer_country_id: 1,
+        customer_zone_id: 1,
+        customer_business_entity: "LLP",
+        customer_company_type: 1,
+        customer_company_address: "123 Business St",
+        customer_product_service: 1,
+        customer_main_product: "Electronics",
+        customer_default_address_id: 0,
+        customer_fax: "",
+        customer_guide_flag: 0,
+        supplier_class: 0,
+        buyer_class: 0,
+        customer_class: 0,
+        customer_date_birth: new Date().toISOString().split('T')[0],
+        customer_id_type: 0,
+        customer_id_no: "0",
+        customer_date_reg: new Date().toISOString().split('T')[0],
+        language_id: 1,
+        customer_activate_code: "",
+        supplier_verify_status: 0,
+        supplier_pass_time: new Date().toISOString(),
+        website: "",
+        is_payed: 0,
+        is_free: 0,
+        ip_address: "",
+        ip_country: ""
+      };
+
+      console.log('Submitting registration data:', payload);
+      await register(payload);
+      toast.success("Account created successfully! Please verify your email.");
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      // Handle different error formats
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (error.response?.data?.detail) {
+        // If detail is an array, join the messages
+        if (Array.isArray(error.response.data.detail)) {
+          errorMessage = error.response.data.detail.map((err: any) => 
+            typeof err === 'string' ? err : err.msg || JSON.stringify(err)
+          ).join(', ');
+        } else if (typeof error.response.data.detail === 'string') {
+          // If detail is a string
+          errorMessage = error.response.data.detail;
+        }
+      }
+      
+      toast.error(errorMessage);
+    }
   }
 
   return (
-    <Card className="w-full card-neumorph animate-fade-in">
+    <Card className="w-full max-w-lg mx-auto">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
         <CardDescription>Enter your details to get started</CardDescription>
@@ -76,34 +133,6 @@ const SignUp = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="johndoe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="john@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <FormField
                 control={form.control}
                 name="firstName"
@@ -117,7 +146,6 @@ const SignUp = () => {
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="lastName"
@@ -131,35 +159,19 @@ const SignUp = () => {
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
-                name="password"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="email" placeholder="john@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <FormField
                 control={form.control}
                 name="phone"
@@ -173,7 +185,32 @@ const SignUp = () => {
                   </FormItem>
                 )}
               />
-              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="companyName"
@@ -187,7 +224,6 @@ const SignUp = () => {
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="gstinCode"
@@ -195,33 +231,18 @@ const SignUp = () => {
                   <FormItem>
                     <FormLabel>GSTIN Code (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="22AAAAA0000A1Z5" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="referBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Refer By (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Referral code" {...field} />
+                      <Input placeholder="GSTIN1234567890" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
             <FormField
               control={form.control}
               name="termsAccepted"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-2">
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -229,15 +250,17 @@ const SignUp = () => {
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel className="text-sm">
-                      I agree to the <Link to="/terms" className="text-accent font-medium">terms and conditions</Link>
+                    <FormLabel>
+                      I accept the{" "}
+                      <Link to="/terms" className="text-primary hover:underline">
+                        terms and conditions
+                      </Link>
                     </FormLabel>
                     <FormMessage />
                   </div>
                 </FormItem>
               )}
             />
-            
             <Button type="submit" className="w-full">
               Create Account
             </Button>
@@ -254,6 +277,6 @@ const SignUp = () => {
       </CardFooter>
     </Card>
   );
-};
+}
 
 export default SignUp;
