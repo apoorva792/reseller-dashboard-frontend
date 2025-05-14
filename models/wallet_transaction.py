@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, DECIMAL, ForeignKey, T
 from sqlalchemy.orm import relationship
 from database.database import Base
 from sqlalchemy.sql import func
-
+#deployment comment
 class WalletTransaction(Base):
     __tablename__ = "wallet_transactions"
 
